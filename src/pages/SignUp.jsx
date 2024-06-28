@@ -1,7 +1,11 @@
 import React, { useState } from 'react'
 import { AiFillEyeInvisible, AiFillEye } from 'react-icons/ai'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import OAuth from '../components/OAuth'
+import { getAuth, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth'
+import {db} from "../firebase"
+import { doc, serverTimestamp, setDoc } from 'firebase/firestore'
+import { toast } from 'react-toastify'
 
 export default function SignUp() {
   //niche hm form banate time email use nhi kar skate as value kyu ki email kahi se define nhi hai to uske liye custom hoot bnayenge email ka formData se
@@ -13,12 +17,38 @@ export default function SignUp() {
   const {name, email, password} = formData  // upar se aa rha email ko destructure kar liye
   const [showPassword, setShowPassword] = useState(false)
 
+  const navigate = useNavigate();
+
   function onChange(e) {    //input m type hone par ye data ko save kar k rakhega aur upar useState m update hoga
     setFormData((prevState) => ({
       ...prevState, 
       [e.target.id]: e.target.value    // id esliye liya gya hai kyuki 2 chije save karni hai email aur password
     }));
   }
+
+  async function onSubmit(e) {
+    e.preventDefault()
+    try {
+      const auth = getAuth();
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      updateProfile(auth.currentUser, {
+        displayName: name
+      })
+      const user = userCredential.user;
+      const formDataCopy = {...formData}
+      delete formDataCopy.password            //password delete kar diye hai taki database m save n ho
+      formDataCopy.timestamp = serverTimestamp();     //timestamp daal diye hai cop m, ab database m save kar skate hai
+      
+      await setDoc(doc(db, "users", user.uid), formDataCopy)   //setDoc se save kar rhe data, jo v formDataCopy m hai wo doc m save ho jayga
+
+      toast.success("Sign up successful")
+
+      navigate("/");    //signup karne pe home pe redirect kar diye
+    } catch (error) {
+      toast.error("Something went wrong with the registration")
+    }
+  }
+
   return (
     <section>
       <h1 className="text-3xl text-center mt-6 font-bold">Sign Up</h1>
@@ -31,7 +61,7 @@ export default function SignUp() {
           />
         </div>
         <div className="w-full md:w-[67%] lg:w-[40%] lg:ml-20">
-          <form>
+          <form onSubmit={onSubmit}>
             <input
               type="text"
               id="name"
@@ -113,3 +143,4 @@ export default function SignUp() {
     </section>
   );
 }
+
