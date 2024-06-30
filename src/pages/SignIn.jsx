@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { AiFillEyeInvisible, AiFillEye } from 'react-icons/ai'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import OAuth from '../components/OAuth'
+import { toast } from 'react-toastify'
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
 
 export default function SignIn() {
   //niche hm form banate time email use nhi kar skate as value kyu ki email kahi se define nhi hai to uske liye custom hoot bnayenge email ka formData se
@@ -11,6 +13,7 @@ export default function SignIn() {
   })
   const {email, password} = formData  // upar se aa rha email ko destructure kar liye
   const [showPassword, setShowPassword] = useState(false)
+  const navigate = useNavigate()
 
   function onChange(e) {    //input m type hone par ye data ko save kar k rakhega aur upar useState m update hoga
     setFormData((prevState) => ({
@@ -18,6 +21,20 @@ export default function SignIn() {
       [e.target.id]: e.target.value    // id esliye liya gya hai kyuki 2 chije save karni hai email aur password
     }));
   }
+
+  async function onSubmit(e) {
+    e.preventDefault()
+    try {
+      const auth = getAuth()
+      const userCredential = await signInWithEmailAndPassword(auth, email, password)
+      if(userCredential.user){
+        navigate("/")
+      }
+    } catch (error) {
+      toast.error("Bad user credential")
+    }
+  }
+
   return (
     <section>
       <h1 className="text-3xl text-center mt-6 font-bold">Sign In</h1>
@@ -30,7 +47,7 @@ export default function SignIn() {
           />
         </div>
         <div className="w-full md:w-[67%] lg:w-[40%] lg:ml-20">
-          <form>
+          <form onSubmit={onSubmit}>
             <input
               type="email"
               id="email"
